@@ -15,6 +15,7 @@ Window {
     property real simPhase: 0.0
     property real glowPhase: 0.0
     property int currentFilter: 0
+    property bool showGrid: true
 
     Rectangle {
         anchors.fill: parent
@@ -22,6 +23,7 @@ Window {
 
         Row {
             anchors.fill: parent
+            spacing: 0
 
             // Левая панель
             Rectangle {
@@ -48,8 +50,14 @@ Window {
                     Text { text: "Фаза: " + simPhase.toFixed(2) ; color:"white" }
                     Text { text: "Фильтр: " + (currentFilter + 1) ; color:"white" }
 
-                    // **Координаты курсора**
+                    // Координаты курсора
                     Text { text: "Курсор: (" + canvas.cursorRelX.toFixed(2) + "," + canvas.cursorRelY.toFixed(2) + ")" ; color:"white" }
+
+                    // Кнопка для сетки
+                    Button {
+                        text: showGrid ? "Сетка: Вкл" : "Сетка: Выкл"
+                        onClicked: showGrid = !showGrid
+                    }
 
                     // Ползунки
                     Text { text: "Длина волны 1"; color:"white" }
@@ -82,8 +90,6 @@ Window {
                 }
             }
 
-
-
             // Основной Canvas
             Item {
                 id: view
@@ -100,9 +106,9 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
-                        onPositionChanged: {
-                            canvas.cursorRelX = mouse.x / canvas.width
-                            canvas.cursorRelY = mouse.y / canvas.height
+                        onPositionChanged: function(event) {
+                            canvas.cursorRelX = event.x / canvas.width
+                            canvas.cursorRelY = event.y / canvas.height
                             backend.setCursorPos(canvas.cursorRelX, canvas.cursorRelY)
                             canvas.requestPaint()
                         }
@@ -113,20 +119,22 @@ Window {
                         var ctx = getContext("2d")
                         ctx.clearRect(0,0,width,height)
 
-                        // Сетка
-                        ctx.strokeStyle = "rgba(255,255,255,0.1)"
-                        ctx.lineWidth = 1
-                        var stepX = width/10
-                        var stepY = height/10
-                        for (var i=0;i<=10;i++){
-                            ctx.beginPath()
-                            ctx.moveTo(i*stepX,0)
-                            ctx.lineTo(i*stepX,height)
-                            ctx.stroke()
-                            ctx.beginPath()
-                            ctx.moveTo(0,i*stepY)
-                            ctx.lineTo(width,i*stepY)
-                            ctx.stroke()
+                        // Сетка по всей картине, только если showGrid
+                        if(showGrid){
+                            ctx.strokeStyle = "rgba(255,255,255,0.2)"
+                            ctx.lineWidth = 1
+                            var stepX = width/10
+                            var stepY = height/10
+                            for (var i=0;i<=10;i++){
+                                ctx.beginPath()
+                                ctx.moveTo(i*stepX,0)
+                                ctx.lineTo(i*stepX,height)
+                                ctx.stroke()
+                                ctx.beginPath()
+                                ctx.moveTo(0,i*stepY)
+                                ctx.lineTo(width,i*stepY)
+                                ctx.stroke()
+                            }
                         }
 
                         // Интерференция
@@ -184,6 +192,25 @@ Window {
                         }
                         drawRays(width*src1.relX,height*src1.relY,"rgba(0,255,255,0.3)")
                         drawRays(width*src2.relX,height*src2.relY,"rgba(255,0,255,0.3)")
+
+                        // **Сетка поверх всего**
+                            if(!showGrid){
+                                ctx.strokeStyle = "rgba(255,255,255,0.3)"
+                                ctx.lineWidth = 1
+                                var stepX = width/10
+                                var stepY = height/10
+                                for (var i=0;i<=10;i++){
+                                    ctx.beginPath()
+                                    ctx.moveTo(i*stepX,0)
+                                    ctx.lineTo(i*stepX,height)
+                                    ctx.stroke()
+
+                                    ctx.beginPath()
+                                    ctx.moveTo(0,i*stepY)
+                                    ctx.lineTo(width,i*stepY)
+                                    ctx.stroke()
+                                }
+                            }
                     }
                 }
 
@@ -201,7 +228,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         drag.target: parent
-                        onPositionChanged: {
+                        onPositionChanged: function(event) {
                             src1.relX = (parent.x + parent.width/2)/view.width
                             src1.relY = (parent.y + parent.height/2)/view.height
                             backend.setSource1(src1.relX, src1.relY)
@@ -224,7 +251,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         drag.target: parent
-                        onPositionChanged: {
+                        onPositionChanged: function(event) {
                             src2.relX = (parent.x + parent.width/2)/view.width
                             src2.relY = (parent.y + parent.height/2)/view.height
                             backend.setSource2(src2.relX, src2.relY)
@@ -243,7 +270,7 @@ Window {
         function onPhaseChanged(phase){ simPhase=phase }
         function onGlowPhaseChanged(phase){ glowPhase=phase }
         function onFilterChanged(f){ currentFilter=f }
-        function onCursorPosChanged(x,y){}  // курсор мы не рисуем
+        function onCursorPosChanged(x,y){}
         function onImageReady(data){ imageData=data }
     }
 }
