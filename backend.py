@@ -7,6 +7,7 @@ class Backend(QObject):
     phaseChanged = Signal(float)
     glowPhaseChanged = Signal(float)
     filterChanged = Signal(int)
+    cursorPosChanged = Signal(float, float)  # координаты мыши
 
     def __init__(self):
         super().__init__()
@@ -17,11 +18,11 @@ class Backend(QObject):
         self.wavelength2 = 20
         self.simPhase = 0.0
         self.glowPhase = 0.0
-        self.currentFilter = 0  # индекс фильтра
+        self.currentFilter = 0
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.recalculate)
-        self.timer.start(33)
+        self.timer.start(33)  # ~30 FPS
 
     @Slot(float, float)
     def setSource1(self, x, y):
@@ -44,9 +45,14 @@ class Backend(QObject):
         self.currentFilter = f
         self.filterChanged.emit(f)
 
+    @Slot(float, float)
+    def setCursorPos(self, x, y):
+        self.cursorPosChanged.emit(x, y)
+
     @Slot()
     def recalculate(self):
         data = self.sim.calculate(self.s1, self.s2, self.wavelength1, self.wavelength2)
+
         self.simPhase += 0.02
         if self.simPhase > 2*np.pi:
             self.simPhase -= 2*np.pi
