@@ -22,38 +22,32 @@ Window {
         color: "#111"
 
         Row {
-            anchors.fill: parent
+            width: parent.width
+            height: parent.height
             spacing: 0
 
             // Левая панель
             Rectangle {
                 width: 240
+                height: parent.height
                 color: "#222"
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 10
                     spacing: 10
 
-                    // Данные источников
                     Text { text: "Источник 1: (" + src1.relX.toFixed(2) + "," + src1.relY.toFixed(2) + ")" ; color:"white" }
                     Text { text: "Источник 2: (" + src2.relX.toFixed(2) + "," + src2.relY.toFixed(2) + ")" ; color:"white" }
 
-                    // Длины волн
                     Text { text: "Длина волны 1: " + wave1.value.toFixed(1) ; color:"white" }
                     Text { text: "Длина волны 2: " + wave2.value.toFixed(1) ; color:"white" }
 
-                    // Фаза и фильтр
                     Text { text: "Фаза: " + simPhase.toFixed(2) ; color:"white" }
                     Text { text: "Фильтр: " + (currentFilter + 1) ; color:"white" }
 
-                    // Координаты курсора
                     Text { text: "Курсор: (" + canvas.cursorRelX.toFixed(2) + "," + canvas.cursorRelY.toFixed(2) + ")" ; color:"white" }
 
-                    // Кнопка для сетки
                     Button {
                         text: !showGrid ? "Сетка: Вкл" : "Сетка: Выкл"
                         onClicked: {
@@ -63,7 +57,6 @@ Window {
                         }
                     }
 
-                    // Ползунки
                     Text { text: "Длина волны 1"; color:"white" }
                     Slider {
                         id: wave1
@@ -82,7 +75,6 @@ Window {
                         onValueChanged: backend.setWavelength2(value)
                     }
 
-                    // Кнопки фильтров
                     Text { text: "Фильтры"; color:"white" }
                     Column {
                         spacing: 10
@@ -92,9 +84,8 @@ Window {
                         Button { text: "Фильтр 3"; height: 40; onClicked: backend.setFilter(2) }
                     }
 
-                    // Кнопка сохранения изображения
                     Button {
-                        text: "Сохранить картинку интерференции"
+                        text: "Сделать скриншот"
                         onClicked: backend.saveImage()
                         width: parent.width - 20
                         height: 40
@@ -105,8 +96,8 @@ Window {
             // Основной Canvas
             Item {
                 id: view
-                anchors.fill: parent
-                anchors.leftMargin: 240
+                width: parent.width - 240
+                height: parent.height
 
                 Canvas {
                     id: canvas
@@ -158,7 +149,6 @@ Window {
                         ctx.putImageData(img, 0, 0)
                         ctx.drawImage(img, 0, 0, simWidth, simHeight, 0, 0, width, height)
 
-                        // Сетка после интерференции
                         if (showGrid) {
                             ctx.strokeStyle = "rgba(255,255,255,0.2)"
                             ctx.lineWidth = 1
@@ -191,7 +181,6 @@ Window {
                         drawGlow(width * src1.relX, height * src1.relY, "rgba(0,255,255,0.5)")
                         drawGlow(width * src2.relX, height * src2.relY, "rgba(255,0,255,0.5)")
 
-                        // Источники
                         ctx.fillStyle = "cyan"
                         ctx.beginPath()
                         ctx.arc(width * src1.relX, height * src1.relY, 10, 0, 2 * Math.PI)
@@ -201,7 +190,6 @@ Window {
                         ctx.arc(width * src2.relX, height * src2.relY, 10, 0, 2 * Math.PI)
                         ctx.fill()
 
-                        // Крутящиеся лучи
                         function drawRays(x, y, color) {
                             ctx.strokeStyle = color
                             ctx.lineWidth = 1
@@ -221,7 +209,6 @@ Window {
                     }
                 }
 
-                // Источник 1
                 Rectangle {
                     id: src1
                     width: 20; height: 20
@@ -244,7 +231,6 @@ Window {
                     }
                 }
 
-                // Источник 2
                 Rectangle {
                     id: src2
                     width: 20; height: 20
