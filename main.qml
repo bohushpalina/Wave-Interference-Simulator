@@ -6,7 +6,7 @@ Window {
     visible: true
     width: 900
     height: 650
-    title: "Interference Simulator"
+    title: "Симулятор интерференции"
     flags: Qt.Window
 
     property var imageData: []
@@ -21,36 +21,74 @@ Window {
         color: "#111"
 
         Row {
-            width: parent.width
-            height: parent.height
-            spacing: 0
+            anchors.fill: parent
 
             // Левая панель
             Rectangle {
-                width: 220
-                height: parent.height
+                width: 240
                 color: "#222"
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 10
-                    spacing: 5
+                    spacing: 10
 
+                    // Данные источников
                     Text { text: "Источник 1: (" + src1.relX.toFixed(2) + "," + src1.relY.toFixed(2) + ")" ; color:"white" }
                     Text { text: "Источник 2: (" + src2.relX.toFixed(2) + "," + src2.relY.toFixed(2) + ")" ; color:"white" }
+
+                    // Длины волн
                     Text { text: "Длина волны 1: " + wave1.value.toFixed(1) ; color:"white" }
                     Text { text: "Длина волны 2: " + wave2.value.toFixed(1) ; color:"white" }
+
+                    // Фаза и фильтр
                     Text { text: "Фаза: " + simPhase.toFixed(2) ; color:"white" }
-                    Text { text: "Фильтр: " + currentFilter ; color:"white" }
+                    Text { text: "Фильтр: " + (currentFilter + 1) ; color:"white" }
+
+                    // **Координаты курсора**
                     Text { text: "Курсор: (" + canvas.cursorRelX.toFixed(2) + "," + canvas.cursorRelY.toFixed(2) + ")" ; color:"white" }
+
+                    // Ползунки
+                    Text { text: "Длина волны 1"; color:"white" }
+                    Slider {
+                        id: wave1
+                        from: 10
+                        to: 60
+                        width: parent.width - 20
+                        onValueChanged: backend.setWavelength1(value)
+                    }
+
+                    Text { text: "Длина волны 2"; color:"white" }
+                    Slider {
+                        id: wave2
+                        from: 10
+                        to: 60
+                        width: parent.width - 20
+                        onValueChanged: backend.setWavelength2(value)
+                    }
+
+                    // Кнопки фильтров
+                    Text { text: "Фильтры"; color:"white" }
+                    Column {
+                        spacing: 10
+                        width: parent.width - 20
+                        Button { text: "Фильтр 1"; height: 40; onClicked: backend.setFilter(0) }
+                        Button { text: "Фильтр 2"; height: 40; onClicked: backend.setFilter(1) }
+                        Button { text: "Фильтр 3"; height: 40; onClicked: backend.setFilter(2) }
+                    }
                 }
             }
 
-            // Основной вид
+
+
+            // Основной Canvas
             Item {
                 id: view
-                width: parent.width - 220
-                height: parent.height
+                anchors.fill: parent
+                anchors.leftMargin: 240
 
                 Canvas {
                     id: canvas
@@ -59,8 +97,19 @@ Window {
                     property real cursorRelX: 0
                     property real cursorRelY: 0
 
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onPositionChanged: {
+                            canvas.cursorRelX = mouse.x / canvas.width
+                            canvas.cursorRelY = mouse.y / canvas.height
+                            backend.setCursorPos(canvas.cursorRelX, canvas.cursorRelY)
+                            canvas.requestPaint()
+                        }
+                    }
+
                     onPaint: {
-                        if (!imageData || imageData.length === 0) return
+                        if (!imageData || imageData.length===0) return
                         var ctx = getContext("2d")
                         ctx.clearRect(0,0,width,height)
 
@@ -136,17 +185,6 @@ Window {
                         drawRays(width*src1.relX,height*src1.relY,"rgba(0,255,255,0.3)")
                         drawRays(width*src2.relX,height*src2.relY,"rgba(255,0,255,0.3)")
                     }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onPositionChanged: function(mouse) {
-                            canvas.cursorRelX = mouse.x / canvas.width
-                            canvas.cursorRelY = mouse.y / canvas.height
-                            backend.setCursorPos(canvas.cursorRelX, canvas.cursorRelY)
-                            canvas.requestPaint()
-                        }
-                    }
                 }
 
                 // Источник 1
@@ -157,14 +195,13 @@ Window {
                     color: "transparent"
                     property real relX: 0.5
                     property real relY: 0.5
-
                     x: view.width * relX - width/2
                     y: view.height * relY - height/2
 
                     MouseArea {
                         anchors.fill: parent
                         drag.target: parent
-                        onPositionChanged: function(mouse) {
+                        onPositionChanged: {
                             src1.relX = (parent.x + parent.width/2)/view.width
                             src1.relY = (parent.y + parent.height/2)/view.height
                             backend.setSource1(src1.relX, src1.relY)
@@ -181,14 +218,13 @@ Window {
                     color: "transparent"
                     property real relX: 0.5
                     property real relY: 0.5
-
                     x: view.width * relX - width/2
                     y: view.height * relY - height/2
 
                     MouseArea {
                         anchors.fill: parent
                         drag.target: parent
-                        onPositionChanged: function(mouse) {
+                        onPositionChanged: {
                             src2.relX = (parent.x + parent.width/2)/view.width
                             src2.relY = (parent.y + parent.height/2)/view.height
                             backend.setSource2(src2.relX, src2.relY)
@@ -197,40 +233,6 @@ Window {
                     }
                 }
             }
-        }
-
-        // Ползунки
-        Slider {
-            id: wave1
-            from: 10
-            to: 60
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width * 0.4
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 55
-            onValueChanged: backend.setWavelength1(value)
-        }
-
-        Slider {
-            id: wave2
-            from: 10
-            to: 60
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width * 0.4
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 20
-            onValueChanged: backend.setWavelength2(value)
-        }
-
-        // Фильтры
-        Row {
-            spacing:10
-            anchors.bottom: parent.bottom
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottomMargin: 90
-            Button { text:"Filter 1"; onClicked: backend.setFilter(0) }
-            Button { text:"Filter 2"; onClicked: backend.setFilter(1) }
-            Button { text:"Filter 3"; onClicked: backend.setFilter(2) }
         }
     }
 
@@ -241,7 +243,7 @@ Window {
         function onPhaseChanged(phase){ simPhase=phase }
         function onGlowPhaseChanged(phase){ glowPhase=phase }
         function onFilterChanged(f){ currentFilter=f }
-        function onCursorPosChanged(x,y){ canvas.cursorRelX=x; canvas.cursorRelY=y }
+        function onCursorPosChanged(x,y){}  // курсор мы не рисуем
         function onImageReady(data){ imageData=data }
     }
 }
