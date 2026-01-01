@@ -21,15 +21,15 @@ Window {
         color: "#111"
 
         Row {
-            anchors.fill: parent
+            width: parent.width
+            height: parent.height
+            spacing: 0
 
             // Левая панель
             Rectangle {
                 width: 220
+                height: parent.height
                 color: "#222"
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
 
                 Column {
                     anchors.fill: parent
@@ -42,35 +42,25 @@ Window {
                     Text { text: "Длина волны 2: " + wave2.value.toFixed(1) ; color:"white" }
                     Text { text: "Фаза: " + simPhase.toFixed(2) ; color:"white" }
                     Text { text: "Фильтр: " + currentFilter ; color:"white" }
-                    Text { text: "Курсор: (" + canvas.cursorPosX.toFixed(1) + "," + canvas.cursorPosY.toFixed(1) + ")" ; color:"white" }
+                    Text { text: "Курсор: (" + canvas.cursorRelX.toFixed(2) + "," + canvas.cursorRelY.toFixed(2) + ")" ; color:"white" }
                 }
             }
 
             // Основной вид
             Item {
                 id: view
-                anchors.fill: parent
-                anchors.leftMargin: 220
+                width: parent.width - 220
+                height: parent.height
 
                 Canvas {
                     id: canvas
                     anchors.fill: parent
 
-                    property real cursorPosX: 0
-                    property real cursorPosY: 0
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onPositionChanged: {
-                            canvas.cursorPosX = mouse.x
-                            canvas.cursorPosY = mouse.y
-                            backend.setCursorPos(mouse.x, mouse.y)
-                        }
-                    }
+                    property real cursorRelX: 0
+                    property real cursorRelY: 0
 
                     onPaint: {
-                        if (!imageData || imageData.length===0) return
+                        if (!imageData || imageData.length === 0) return
                         var ctx = getContext("2d")
                         ctx.clearRect(0,0,width,height)
 
@@ -146,6 +136,17 @@ Window {
                         drawRays(width*src1.relX,height*src1.relY,"rgba(0,255,255,0.3)")
                         drawRays(width*src2.relX,height*src2.relY,"rgba(255,0,255,0.3)")
                     }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onPositionChanged: function(mouse) {
+                            canvas.cursorRelX = mouse.x / canvas.width
+                            canvas.cursorRelY = mouse.y / canvas.height
+                            backend.setCursorPos(canvas.cursorRelX, canvas.cursorRelY)
+                            canvas.requestPaint()
+                        }
+                    }
                 }
 
                 // Источник 1
@@ -163,7 +164,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         drag.target: parent
-                        onPositionChanged: {
+                        onPositionChanged: function(mouse) {
                             src1.relX = (parent.x + parent.width/2)/view.width
                             src1.relY = (parent.y + parent.height/2)/view.height
                             backend.setSource1(src1.relX, src1.relY)
@@ -187,7 +188,7 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         drag.target: parent
-                        onPositionChanged: {
+                        onPositionChanged: function(mouse) {
                             src2.relX = (parent.x + parent.width/2)/view.width
                             src2.relY = (parent.y + parent.height/2)/view.height
                             backend.setSource2(src2.relX, src2.relY)
@@ -199,13 +200,12 @@ Window {
         }
 
         // Ползунки
-        // Ползунки
         Slider {
             id: wave1
             from: 10
             to: 60
             anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width * 0.4  // короче
+            width: parent.width * 0.4
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 55
             onValueChanged: backend.setWavelength1(value)
@@ -216,15 +216,18 @@ Window {
             from: 10
             to: 60
             anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width * 0.4  // короче
+            width: parent.width * 0.4
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 20
             onValueChanged: backend.setWavelength2(value)
         }
 
-
         // Фильтры
-        Row { spacing:10; anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter; anchors.bottomMargin: 90
+        Row {
+            spacing:10
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottomMargin: 90
             Button { text:"Filter 1"; onClicked: backend.setFilter(0) }
             Button { text:"Filter 2"; onClicked: backend.setFilter(1) }
             Button { text:"Filter 3"; onClicked: backend.setFilter(2) }
@@ -238,7 +241,7 @@ Window {
         function onPhaseChanged(phase){ simPhase=phase }
         function onGlowPhaseChanged(phase){ glowPhase=phase }
         function onFilterChanged(f){ currentFilter=f }
-        function onCursorPosChanged(x,y){ canvas.cursorPosX=x; canvas.cursorPosY=y }
+        function onCursorPosChanged(x,y){ canvas.cursorRelX=x; canvas.cursorRelY=y }
         function onImageReady(data){ imageData=data }
     }
 }
