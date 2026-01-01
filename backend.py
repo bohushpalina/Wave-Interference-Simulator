@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, Signal, Slot, QTimer, Qt
+from PySide6.QtCore import QObject, Signal, Slot, QTimer, Qt, Property
 from simulation import InterferenceSimulator
 from PySide6.QtGui import QImage, QPainter, QColor, QFont, QRadialGradient
 from PySide6.QtWidgets import QFileDialog
@@ -10,6 +10,7 @@ class Backend(QObject):
     glowPhaseChanged = Signal(float)
     filterChanged = Signal(int)
     cursorPosChanged = Signal(float, float)
+    timerChanged = Signal(bool)  # сигнал для QML при изменении таймера
 
     def __init__(self):
         super().__init__()
@@ -22,12 +23,30 @@ class Backend(QObject):
         self.glowPhase = 0.0
         self.currentFilter = 0
         self.imageData = None
-        self.showGrid = True  # флаг сетки
+        self.showGrid = True
+
+        self._timerRunning = True
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.recalculate)
         self.timer.start(33)
 
+    # --- Свойство timerRunning для QML ---
+    def getTimerRunning(self):
+        return self._timerRunning
+
+    def setTimerRunning(self, value):
+        if self._timerRunning != value:
+            self._timerRunning = value
+            if value:
+                self.timer.start(33)
+            else:
+                self.timer.stop()
+            self.timerChanged.emit(value)
+
+    timerRunning = Property(bool, getTimerRunning, setTimerRunning, notify=timerChanged)
+
+    # --- Источники ---
     @Slot(float, float)
     def setSource1(self, x, y):
         self.s1 = [x * self.sim.width, y * self.sim.height]
@@ -36,6 +55,7 @@ class Backend(QObject):
     def setSource2(self, x, y):
         self.s2 = [x * self.sim.width, y * self.sim.height]
 
+    # --- Длины волн ---
     @Slot(float)
     def setWavelength1(self, w):
         self.wavelength1 = w
@@ -44,19 +64,32 @@ class Backend(QObject):
     def setWavelength2(self, w):
         self.wavelength2 = w
 
+    # --- Фильтр ---
     @Slot(int)
     def setFilter(self, f):
         self.currentFilter = f
         self.filterChanged.emit(f)
 
+    # --- Сетка ---
     @Slot(bool)
     def setShowGrid(self, value):
         self.showGrid = value
 
+    # --- Курсор ---
     @Slot(float, float)
     def setCursorPos(self, x, y):
         self.cursorPosChanged.emit(x, y)
 
+    # --- Управление анимацией ---
+    @Slot()
+    def pauseAnimation(self):
+        self.timerRunning = False
+
+    @Slot()
+    def startAnimation(self):
+        self.timerRunning = True
+
+    # --- Основной расчет интерференции и фаз ---
     @Slot()
     def recalculate(self):
         if self.sim is None:
@@ -65,22 +98,23 @@ class Backend(QObject):
         self.imageData = data.copy()
 
         # Анимация фаз
-        self.simPhase += 0.02
-        if self.simPhase > 2*np.pi:
-            self.simPhase -= 2*np.pi
+        if self._timerRunning:
+            self.simPhase += 0.02
+            if self.simPhase > 2*np.pi:
+                self.simPhase -= 2*np.pi
 
-        self.glowPhase += 0.1
-        if self.glowPhase > 2*np.pi:
-            self.glowPhase -= 2*np.pi
+            self.glowPhase += 0.1
+            if self.glowPhase > 2*np.pi:
+                self.glowPhase -= 2*np.pi
 
         # Сигналы для QML
         self.phaseChanged.emit(self.simPhase)
         self.glowPhaseChanged.emit(self.glowPhase)
         self.imageReady.emit(data.flatten().tolist())
 
+    # --- Сохранение изображения ---
     @Slot()
     def saveImage(self):
-        """Сохраняет скриншот с увеличенными пикселями интерференции и подписью"""
         if self.imageData is None:
             print("Нет данных для сохранения")
             return
@@ -96,16 +130,14 @@ class Backend(QObject):
         if not filePath:
             return
 
-        scale = 4  # увеличиваем пиксели в 4 раза
+        scale = 4
         width = self.sim.width * scale
-        height = self.sim.height * scale + 60  # место для подписи
+        height = self.sim.height * scale + 60
 
         img = QImage(width, height, QImage.Format_ARGB32)
         img.fill(QColor("black"))
-
         painter = QPainter(img)
 
-        # --- Интерференция (каждый пиксель увеличен) ---
         flat = self.imageData.flatten()
         for y in range(self.sim.height):
             for x in range(self.sim.width):
@@ -150,29 +182,28 @@ class Backend(QObject):
         drawGlow(s1x, s1y, (0, 255, 255))
         drawGlow(s2x, s2y, (255, 0, 255))
 
-        # Минимальные источники
+        # Мини-источники
         painter.setBrush(QColor("cyan"))
         painter.setPen(Qt.NoPen)
         painter.drawEllipse(s1x-2*scale, s1y-2*scale, 4*scale, 4*scale)
-
-        painter.setBrush(QColor("magenta"))
+        painter.setBrush(QColor("red"))  # вместо "magenta"
         painter.drawEllipse(s2x-2*scale, s2y-2*scale, 4*scale, 4*scale)
 
-        # --- Крутящиеся лучи ---
+        # Крутящиеся лучи
         painter.setPen(QColor(0,255,255,80))
         for i in range(12):
             angle = 2*np.pi/12*i + self.simPhase
             painter.drawLine(s1x, s1y,
                              int(s1x + np.cos(angle)*width),
                              int(s1y + np.sin(angle)*height))
-        painter.setPen(QColor(255,0,255,80))
+        painter.setPen(QColor(255,0,0,80))
         for i in range(12):
             angle = 2*np.pi/12*i + self.simPhase
             painter.drawLine(s2x, s2y,
                              int(s2x + np.cos(angle)*width),
                              int(s2y + np.sin(angle)*height))
 
-        # --- Подпись в два ряда ---
+        # Подпись
         painter.setPen(QColor("white"))
         font = QFont("Arial", 14)
         painter.setFont(font)
@@ -182,7 +213,6 @@ class Backend(QObject):
         text2 = f"Фаза: {self.simPhase:.2f} | Фильтр: {self.currentFilter+1}"
         painter.drawText(10, height-45, text1)
         painter.drawText(10, height-20, text2)
-
         painter.end()
 
         if img.save(filePath):

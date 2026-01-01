@@ -57,6 +57,25 @@ Window {
                         }
                     }
 
+                    Button {
+                        id: pauseButton
+                            text: backend.timerRunning ? "Пауза" : "Старт"
+                            onClicked: {
+                                if (backend.timerRunning) {
+                                    backend.pauseAnimation()
+                                } else {
+                                    backend.startAnimation()
+                                }
+                            }
+
+                            // Автоматически меняем текст при смене состояния таймера
+                            Connections {
+                                target: backend
+                                onTimerChanged: pauseButton.text = backend.timerRunning ? "Пауза" : "Старт"
+                            }
+                    }
+
+
                     Text { text: "Длина волны 1"; color:"white" }
                     Slider {
                         id: wave1
@@ -151,7 +170,7 @@ Window {
 
                         if (showGrid) {
                             ctx.strokeStyle = "rgba(255,255,255,0.2)"
-                            ctx.lineWidth = 1
+                            ctx.lineWidth = 3
                             var stepX = width / 10
                             var stepY = height / 10
                             for (var i = 0; i <= 10; i++) {
@@ -167,25 +186,27 @@ Window {
                         }
 
                         // Пульсирующее свечение
-                        function drawGlow(x, y, baseColor) {
+                        function drawGlow(x, y, color) {
                             var intensity = 0.4 + 0.3 * Math.sin(glowPhase)
-                            var color = baseColor.replace("0.5", intensity.toString())
+                            var rgbaColor = color.replace("0.5", intensity.toString()) // сохраняем динамическую прозрачность
                             var grd = ctx.createRadialGradient(x, y, 0, x, y, 50)
-                            grd.addColorStop(0, color)
+                            grd.addColorStop(0, rgbaColor)
                             grd.addColorStop(1, "transparent")
                             ctx.fillStyle = grd
                             ctx.beginPath()
                             ctx.arc(x, y, 50, 0, 2 * Math.PI)
                             ctx.fill()
                         }
+
+                        // Применяем свечение: первый источник синий, второй — красный
                         drawGlow(width * src1.relX, height * src1.relY, "rgba(0,255,255,0.5)")
-                        drawGlow(width * src2.relX, height * src2.relY, "rgba(255,0,255,0.5)")
+                        drawGlow(width * src2.relX, height * src2.relY, "rgba(255,0,0,0.5)")
 
                         ctx.fillStyle = "cyan"
                         ctx.beginPath()
                         ctx.arc(width * src1.relX, height * src1.relY, 10, 0, 2 * Math.PI)
                         ctx.fill()
-                        ctx.fillStyle = "magenta"
+                        ctx.fillStyle = "red"
                         ctx.beginPath()
                         ctx.arc(width * src2.relX, height * src2.relY, 10, 0, 2 * Math.PI)
                         ctx.fill()
