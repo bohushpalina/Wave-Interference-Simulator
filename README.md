@@ -21,12 +21,13 @@ The application visualizes the interference pattern produced by two point wave s
 
 The interference intensity is computed as:
 
-\[
+$$
 I(x, y) = \left( \sin(k_1 r_1 + \varphi) + \sin(k_2 r_2 + \varphi) \right)^2
-\]
+$$
 
 where:
-- \( r_1, r_2 \) are distances to the sources  
+
+- \( r_1, r_2 \) are the distances to the wave sources  
 - \( k = \frac{2\pi}{\lambda} \) is the wave number  
 - \( \lambda \) is the wavelength  
 - \( \varphi \) is the phase shift  
