@@ -27,10 +27,10 @@ $$
 
 where:
 
-- \( r_1, r_2 \) are the distances to the wave sources  
-- \( k = \frac{2\pi}{\lambda} \) is the wave number  
-- \( \lambda \) is the wavelength  
-- \( \varphi \) is the phase shift  
+- r₁, r₂ are the distances to the wave sources
+- k is the wave number
+- λ is the wavelength
+- φ is the phase shift
 
 The result is normalized for visualization.
 
