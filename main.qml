@@ -26,7 +26,6 @@ Window {
             height: parent.height
             spacing: 0
 
-            // Левая панель
             Rectangle {
                 width: 240
                 height: parent.height
@@ -39,13 +38,10 @@ Window {
 
                     Text { text: "Источник 1: (" + src1.relX.toFixed(2) + "," + src1.relY.toFixed(2) + ")" ; color:"white" }
                     Text { text: "Источник 2: (" + src2.relX.toFixed(2) + "," + src2.relY.toFixed(2) + ")" ; color:"white" }
-
                     Text { text: "Длина волны 1: " + wave1.value.toFixed(1) ; color:"white" }
                     Text { text: "Длина волны 2: " + wave2.value.toFixed(1) ; color:"white" }
-
                     Text { text: "Фаза: " + simPhase.toFixed(2) ; color:"white" }
                     Text { text: "Фильтр: " + (currentFilter + 1) ; color:"white" }
-
                     Text { text: "Курсор: (" + canvas.cursorRelX.toFixed(2) + "," + canvas.cursorRelY.toFixed(2) + ")" ; color:"white" }
 
                     Button {
@@ -59,28 +55,26 @@ Window {
 
                     Button {
                         id: pauseButton
-                            text: backend.timerRunning ? "Пауза" : "Старт"
-                            onClicked: {
-                                if (backend.timerRunning) {
-                                    backend.pauseAnimation()
-                                } else {
-                                    backend.startAnimation()
-                                }
+                        text: backend.timerRunning ? "Пауза" : "Старт"
+                        onClicked: {
+                            // Переключение состояния анимации через бэкенд
+                            if (backend.timerRunning) {
+                                backend.pauseAnimation()
+                            } else {
+                                backend.startAnimation()
                             }
+                        }
 
-                            // Автоматически меняем текст при смене состояния таймера
-                            Connections {
-                                target: backend
-                                onTimerChanged: pauseButton.text = backend.timerRunning ? "Пауза" : "Старт"
-                            }
+                        Connections {
+                            target: backend
+                            onTimerChanged: pauseButton.text = backend.timerRunning ? "Пауза" : "Старт"
+                        }
                     }
-
 
                     Text { text: "Длина волны 1"; color:"white" }
                     Slider {
                         id: wave1
-                        from: 10
-                        to: 60
+                        from: 10; to: 60
                         width: parent.width - 20
                         onValueChanged: backend.setWavelength1(value)
                     }
@@ -88,8 +82,7 @@ Window {
                     Text { text: "Длина волны 2"; color:"white" }
                     Slider {
                         id: wave2
-                        from: 10
-                        to: 60
+                        from: 10; to: 60
                         width: parent.width - 20
                         onValueChanged: backend.setWavelength2(value)
                     }
@@ -106,13 +99,11 @@ Window {
                     Button {
                         text: "Сделать скриншот"
                         onClicked: backend.saveImage()
-                        width: parent.width - 20
-                        height: 40
+                        width: parent.width - 20; height: 40
                     }
                 }
             }
 
-            // Основной Canvas
             Item {
                 id: view
                 width: parent.width - 240
@@ -121,7 +112,6 @@ Window {
                 Canvas {
                     id: canvas
                     anchors.fill: parent
-
                     property real cursorRelX: 0
                     property real cursorRelY: 0
 
@@ -129,6 +119,7 @@ Window {
                         anchors.fill: parent
                         hoverEnabled: true
                         onPositionChanged: function(event) {
+                            // Обновление координат курсора для передачи в Python
                             canvas.cursorRelX = event.x / canvas.width
                             canvas.cursorRelY = event.y / canvas.height
                             canvas.requestPaint()
@@ -137,92 +128,62 @@ Window {
                     }
 
                     onPaint: {
+                        //Основной цикл отрисовки графики на холсте.
                         if (!imageData || imageData.length === 0) return
                         var ctx = getContext("2d")
                         ctx.clearRect(0, 0, width, height)
 
-                        // Интерференция
                         var img = ctx.createImageData(simWidth, simHeight)
                         for (var i = 0; i < imageData.length; i++) {
                             var val = imageData[i]
                             var r, g, b
+                            // Применение выбранной цветовой схемы
                             if (currentFilter === 0) {
-                                r = Math.floor(val * 255)
-                                g = Math.floor(val * val * 200)
-                                b = Math.floor((1 - val) * 255)
+                                r = Math.floor(val * 255); g = Math.floor(val * val * 200); b = Math.floor((1 - val) * 255)
                             } else if (currentFilter === 1) {
-                                r = Math.floor((1 - val) * 255)
-                                g = Math.floor(val * 255)
-                                b = Math.floor((1 - val) * 255)
+                                r = Math.floor((1 - val) * 255); g = Math.floor(val * 255); b = Math.floor((1 - val) * 255)
                             } else if (currentFilter === 2) {
-                                r = Math.floor(val * 255)
-                                g = Math.floor(val * 128)
-                                b = Math.floor(val * 64)
+                                r = Math.floor(val * 255); g = Math.floor(val * 128); b = Math.floor(val * 64)
                             }
-                            img.data[i * 4] = r
-                            img.data[i * 4 + 1] = g
-                            img.data[i * 4 + 2] = b
-                            img.data[i * 4 + 3] = 255
+                            img.data[i * 4] = r; img.data[i * 4 + 1] = g; img.data[i * 4 + 2] = b; img.data[i * 4 + 3] = 255
                         }
 
                         ctx.putImageData(img, 0, 0)
                         ctx.drawImage(img, 0, 0, simWidth, simHeight, 0, 0, width, height)
 
                         if (showGrid) {
-                            ctx.strokeStyle = "rgba(255,255,255,0.2)"
-                            ctx.lineWidth = 3
-                            var stepX = width / 10
-                            var stepY = height / 10
+                            // Рисование направляющей сетки
+                            ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 3
+                            var stepX = width / 10; var stepY = height / 10
                             for (var i = 0; i <= 10; i++) {
-                                ctx.beginPath()
-                                ctx.moveTo(i * stepX, 0)
-                                ctx.lineTo(i * stepX, height)
-                                ctx.stroke()
-                                ctx.beginPath()
-                                ctx.moveTo(0, i * stepY)
-                                ctx.lineTo(width, i * stepY)
-                                ctx.stroke()
+                                ctx.beginPath(); ctx.moveTo(i * stepX, 0); ctx.lineTo(i * stepX, height); ctx.stroke()
+                                ctx.beginPath(); ctx.moveTo(0, i * stepY); ctx.lineTo(width, i * stepY); ctx.stroke()
                             }
                         }
 
-                        // Пульсирующее свечение
                         function drawGlow(x, y, color) {
+                            //Создает эффект пульсирующего свечения вокруг источника.
                             var intensity = 0.4 + 0.3 * Math.sin(glowPhase)
-                            var rgbaColor = color.replace("0.5", intensity.toString()) // сохраняем динамическую прозрачность
+                            var rgbaColor = color.replace("0.5", intensity.toString())
                             var grd = ctx.createRadialGradient(x, y, 0, x, y, 50)
-                            grd.addColorStop(0, rgbaColor)
-                            grd.addColorStop(1, "transparent")
-                            ctx.fillStyle = grd
-                            ctx.beginPath()
-                            ctx.arc(x, y, 50, 0, 2 * Math.PI)
-                            ctx.fill()
+                            grd.addColorStop(0, rgbaColor); grd.addColorStop(1, "transparent")
+                            ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(x, y, 50, 0, 2 * Math.PI); ctx.fill()
                         }
 
-                        // Применяем свечение: первый источник синий, второй — красный
                         drawGlow(width * src1.relX, height * src1.relY, "rgba(0,255,255,0.5)")
                         drawGlow(width * src2.relX, height * src2.relY, "rgba(255,0,0,0.5)")
 
-                        ctx.fillStyle = "cyan"
-                        ctx.beginPath()
-                        ctx.arc(width * src1.relX, height * src1.relY, 10, 0, 2 * Math.PI)
-                        ctx.fill()
-                        ctx.fillStyle = "red"
-                        ctx.beginPath()
-                        ctx.arc(width * src2.relX, height * src2.relY, 10, 0, 2 * Math.PI)
-                        ctx.fill()
+                        ctx.fillStyle = "cyan"; ctx.beginPath(); ctx.arc(width * src1.relX, height * src1.relY, 10, 0, 2 * Math.PI); ctx.fill()
+                        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(width * src2.relX, height * src2.relY, 10, 0, 2 * Math.PI); ctx.fill()
 
                         function drawRays(x, y, color) {
-                            ctx.strokeStyle = color
-                            ctx.lineWidth = 1
+                            //Рисует вращающиеся лучи от источников.
+                            ctx.strokeStyle = color; ctx.lineWidth = 1
                             var numRays = 12
                             for (var i = 0; i < numRays; i++) {
                                 var angle = 2 * Math.PI / numRays * i + simPhase
-                                var endX = x + Math.cos(angle) * width
-                                var endY = y + Math.sin(angle) * height
-                                ctx.beginPath()
-                                ctx.moveTo(x, y)
-                                ctx.lineTo(endX, endY)
-                                ctx.stroke()
+                                ctx.beginPath(); ctx.moveTo(x, y)
+                                ctx.lineTo(x + Math.cos(angle) * width, y + Math.sin(angle) * height); ctx.stroke()
                             }
                         }
                         drawRays(width * src1.relX, height * src1.relY, "rgba(0,255,255,0.3)")
@@ -232,18 +193,13 @@ Window {
 
                 Rectangle {
                     id: src1
-                    width: 20; height: 20
-                    radius: 10
-                    color: "transparent"
-                    property real relX: 0.5
-                    property real relY: 0.5
-                    x: view.width * relX - width / 2
-                    y: view.height * relY - height / 2
-
+                    width: 20; height: 20; radius: 10; color: "transparent"
+                    property real relX: 0.5; property real relY: 0.5
+                    x: view.width * relX - width / 2; y: view.height * relY - height / 2
                     MouseArea {
-                        anchors.fill: parent
-                        drag.target: parent
+                        anchors.fill: parent; drag.target: parent
                         onPositionChanged: function(event) {
+                            // Синхронизация позиции источника 1 с бэкендом
                             src1.relX = (parent.x + parent.width / 2) / view.width
                             src1.relY = (parent.y + parent.height / 2) / view.height
                             backend.setSource1(src1.relX, src1.relY)
@@ -254,18 +210,13 @@ Window {
 
                 Rectangle {
                     id: src2
-                    width: 20; height: 20
-                    radius: 10
-                    color: "transparent"
-                    property real relX: 0.5
-                    property real relY: 0.5
-                    x: view.width * relX - width / 2
-                    y: view.height * relY - height / 2
-
+                    width: 20; height: 20; radius: 10; color: "transparent"
+                    property real relX: 0.5; property real relY: 0.5
+                    x: view.width * relX - width / 2; y: view.height * relY - height / 2
                     MouseArea {
-                        anchors.fill: parent
-                        drag.target: parent
+                        anchors.fill: parent; drag.target: parent
                         onPositionChanged: function(event) {
+                            // Синхронизация позиции источника 2 с бэкендом
                             src2.relX = (parent.x + parent.width / 2) / view.width
                             src2.relY = (parent.y + parent.height / 2) / view.height
                             backend.setSource2(src2.relX, src2.relY)
@@ -278,9 +229,7 @@ Window {
     }
 
     Timer {
-        interval: 33
-        running: true
-        repeat: true
+        interval: 33; running: true; repeat: true
         onTriggered: canvas.requestPaint()
     }
 
@@ -289,7 +238,6 @@ Window {
         function onPhaseChanged(phase) { simPhase = phase }
         function onGlowPhaseChanged(phase) { glowPhase = phase }
         function onFilterChanged(f) { currentFilter = f }
-        function onCursorPosChanged(x, y) {}
         function onImageReady(data) { imageData = data }
     }
 }
