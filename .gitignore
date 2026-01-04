@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtual environments
+venv/
+.env/
+.qtcreator/
+Python_3_12_3venv/
+
+# Qt / IDE
+*.user
+*.autosave
+*.pro.user*
